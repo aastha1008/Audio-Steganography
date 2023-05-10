@@ -1,0 +1,74 @@
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+
+public class AudioSteganography {
+
+    public static void main(String[] args) {
+        String audioFilePath = "audio.wav";
+        String secretMessage = "This is a secret message.";
+
+        try {
+            // Read audio file
+            File audioFile = new File(audioFilePath);
+            FileInputStream audioStream = new FileInputStream(audioFile);
+            byte[] audioData = new byte[(int) audioFile.length()];
+            audioStream.read(audioData);
+
+            // Encode secret message into audio data
+            byte[] messageData = secretMessage.getBytes();
+            for (int i = 0; i < messageData.length; i++) {
+                for (int j = 0; j < 8; j++) {
+                    int bit = (messageData[i] >> j) & 1;
+                    int index = i * 8 + j;
+                    int audioByteIndex = index * 2 + 44; // Skip header data
+                    audioData[audioByteIndex] = (byte) ((audioData[audioByteIndex] & 0xFE) | bit);
+                }
+            }
+
+            // Write encoded audio data to new file
+            File encodedFile = new File("encoded_audio.wav");
+            FileOutputStream outputStream = new FileOutputStream(encodedFile);
+            outputStream.write(audioData);
+
+            audioStream.close();
+            outputStream.close();
+
+            System.out.println("Secret message encoded successfully.");
+
+        } catch (Exception ex) {
+            System.out.println("Error: " + ex.getMessage());
+        }
+
+        String encodedFilePath = "encoded_audio.wav";
+
+        try {
+            // Read encoded audio file
+            File encodedFile = new File(encodedFilePath);
+            FileInputStream encodedStream = new FileInputStream(encodedFile);
+            byte[] encodedData = new byte[(int) encodedFile.length()];
+            encodedStream.read(encodedData);
+
+            // Decode secret message from audio data
+            byte[] messageData = new byte[secretMessage.length()];
+            for (int i = 0; i < messageData.length; i++) {
+                byte b = 0;
+                for (int j = 0; j < 8; j++) {
+                    int index = i * 8 + j;
+                    int audioByteIndex = index * 2 + 44; // Skip header data
+                    int bit = encodedData[audioByteIndex] & 1;
+                    b |= (byte) (bit << j);
+                }
+                messageData[i] = b;
+            }
+            String decodedMessage = new String(messageData);
+
+            encodedStream.close();
+            System.out.println("Secret message decoded successfully:");
+            System.out.println(decodedMessage);
+
+        } catch (Exception ex) {
+            System.out.println("Error: " + ex.getMessage());
+        }
+    }
+}
